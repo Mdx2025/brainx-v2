@@ -50,6 +50,10 @@ load_libraries() {
     [[ -f "$lib_dir/context.sh" ]] && source "$lib_dir/context.sh"
     [[ -f "$lib_dir/inject.sh" ]] && source "$lib_dir/inject.sh"
     [[ -f "$lib_dir/second-brain.sh" ]] && source "$lib_dir/second-brain.sh"
+    [[ -f "$lib_dir/metrics.sh" ]] && source "$lib_dir/metrics.sh"
+    [[ -f "$lib_dir/scheduler.sh" ]] && source "$lib_dir/scheduler.sh"
+    [[ -f "$lib_dir/webhooks.sh" ]] && source "$lib_dir/webhooks.sh"
+    [[ -f "$lib_dir/audit.sh" ]] && source "$lib_dir/audit.sh"
 }
 
 # === PRINT HELP ===
@@ -91,7 +95,37 @@ ${BOLD}OPTIMIZATION PIPELINE:${NC}
     filter <query>                             Filter by relevance
     compress <text>                            Compress text
     batch <tool_calls>                         Batch tools
-    score <query> [memory_id]                  Score relevance
+    score <query> [memory_id]                   Score relevance
+
+${BOLD}METRICS & TRACKING:${NC}
+    metrics start <agent> <context>            Start tracking session
+    metrics tokens <session> <in> <out> <cost>  Track token usage
+    metrics end <session> <summary>            End tracking session
+    metrics report                             Show metrics report
+    metrics export [csv_file]                   Export to CSV
+
+${BOLD}SCHEDULED TASKS:${NC}
+    schedule add <name> <cron> <agent> <cmd>   Add scheduled task
+    schedule list                             List scheduled tasks
+    schedule run <id>                         Run task immediately
+    schedule remove <id>                       Remove task
+    schedule toggle <id>                       Enable/disable task
+    schedule sync                             Generate crontab entries
+
+${BOLD}WEBHOOKS:${NC}
+    webhook register <name> <url> <event>      Register webhook
+    webhook list                               List webhooks
+    webhook trigger <id> <payload>              Manually trigger webhook
+    webhook remove <id>                        Remove webhook
+    webhook test <id>                          Test webhook
+    webhook logs                               View webhook logs
+
+${BOLD}AUDIT LOG:${NC}
+    audit query [agent] [type] [limit]         Query audit logs
+    audit activity <agent> [days]              Agent activity report
+    audit security                             Security audit report
+    audit stats                                Audit statistics
+    audit cleanup [days]                       Cleanup old entries
 
 ${BOLD}UTILITIES:${NC}
     agents                                     List registered agents
@@ -174,6 +208,26 @@ main() {
             brainx_score "$@"
             ;;
             
+        # Metrics
+        metrics)
+            brainx_metrics_manage "$@"
+            ;;
+            
+        # Scheduler
+        schedule)
+            brainx_schedule_manage "$@"
+            ;;
+            
+        # Webhooks
+        webhook)
+            brainx_webhook_manage "$@"
+            ;;
+            
+        # Audit
+        audit)
+            brainx_audit_manage "$@"
+            ;;
+            
         # Utilities
         agents)
             brainx_agents_list
@@ -210,6 +264,133 @@ brainx_filter() { brainx_error "Command not implemented: filter"; }
 brainx_compress() { brainx_error "Command not implemented: compress"; }
 brainx_batch() { brainx_error "Command not implemented: batch"; }
 brainx_score() { brainx_error "Command not implemented: score"; }
+
+# === METRICS HELP ===
+brainx_metrics_help() {
+    cat <<EOF
+${BOLD}Metrics Commands${NC}
+====================
+Usage: brainx-v2 metrics <command> [options]
+
+Commands:
+    start <agent> <context>    Start tracking session
+    tokens <id> <in> <out> <cost>  Track token usage
+    end <id> <summary>         End tracking session
+    report                     Show metrics report
+    export [file.csv]          Export to CSV
+    cleanup [keep]             Cleanup old entries
+EOF
+}
+
+# === SCHEDULER HELP ===
+brainx_schedule_help() {
+    cat <<EOF
+${BOLD}Scheduler Commands${NC}
+=====================
+Usage: brainx-v2 schedule <command> [options]
+
+Commands:
+    add <name> <cron> <agent> <cmd>   Add scheduled task
+    list                              List scheduled tasks
+    run <id>                          Run task immediately
+    remove <id>                       Remove task
+    toggle <id>                       Enable/disable task
+    sync                              Generate crontab entries
+EOF
+}
+
+# === WEBHOOK HELP ===
+brainx_webhook_help() {
+    cat <<EOF
+${BOLD}Webhook Commands${NC}
+====================
+Usage: brainx-v2 webhook <command> [options]
+
+Commands:
+    register <name> <url> <event>    Register webhook
+    list                             List webhooks
+    trigger <id> <payload>           Manually trigger
+    remove <id>                       Remove webhook
+    test <id>                         Test webhook
+    logs                              View logs
+EOF
+}
+
+# === AUDIT HELP ===
+brainx_audit_help() {
+    cat <<EOF
+${BOLD}Audit Commands${NC}
+==================
+Usage: brainx-v2 audit <command> [options]
+
+Commands:
+    query [agent] [type] [limit]     Query logs
+    activity <agent> [days]         Activity report
+    security                         Security report
+    stats                            Statistics
+    cleanup [days]                   Cleanup old entries
+EOF
+}
+
+# === METRICS MANAGER (dispatcher) ===
+brainx_metrics_manage() {
+    [[ $# -eq 0 ]] && { brainx_metrics_help; return; }
+    local cmd="$1"; shift
+    case "$cmd" in
+        start) metrics_init; metrics_session_start "$@" ;;
+        tokens) metrics_track_tokens "$@" ;;
+        end) metrics_session_end "$@" ;;
+        report) metrics_report ;;
+        export) metrics_export_csv "${1:-metrics.csv}" ;;
+        cleanup) metrics_cleanup "${1:-100}" ;;
+        *) brainx_metrics_help ;;
+    esac
+}
+
+# === SCHEDULER MANAGER (dispatcher) ===
+brainx_schedule_manage() {
+    [[ $# -eq 0 ]] && { brainx_schedule_help; return; }
+    local cmd="$1"; shift
+    case "$cmd" in
+        add) scheduler_add "$@" ;;
+        list) scheduler_list ;;
+        run) scheduler_run "$@" ;;
+        remove) scheduler_remove "$@" ;;
+        toggle) scheduler_toggle "$@" ;;
+        sync) scheduler_sync_cron ;;
+        *) brainx_schedule_help ;;
+    esac
+}
+
+# === WEBHOOK MANAGER (dispatcher) ===
+brainx_webhook_manage() {
+    [[ $# -eq 0 ]] && { brainx_webhook_help; return; }
+    local cmd="$1"; shift
+    case "$cmd" in
+        register) webhooks_init; webhook_register "$@" ;;
+        list) webhook_list ;;
+        trigger) webhook_trigger "$@" ;;
+        remove) webhook_remove "$@" ;;
+        test) webhook_test "$@" ;;
+        logs) webhook_logs ;;
+        *) brainx_webhook_help ;;
+    esac
+}
+
+# === AUDIT MANAGER (dispatcher) ===
+brainx_audit_manage() {
+    [[ $# -eq 0 ]] && { brainx_audit_help; return; }
+    local cmd="$1"; shift
+    case "$cmd" in
+        query) audit_query_logs "$@" ;;
+        activity) audit_agent_activity "$@" ;;
+        security) audit_security_report ;;
+        stats) audit_stats ;;
+        cleanup) audit_cleanup "${1:-90}" ;;
+        *) brainx_audit_help ;;
+    esac
+}
+
 brainx_agents_list() { brainx_error "Command not implemented: agents"; }
 brainx_stats() { brainx_error "Command not implemented: stats"; }
 brainx_health_check() { brainx_error "Command not implemented: health"; }

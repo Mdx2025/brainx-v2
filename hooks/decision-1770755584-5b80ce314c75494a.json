@@ -1,0 +1,8 @@
+{
+  "id": "1770755584-5b80ce314c75494a",
+  "type": "decision",
+  "action": "clawma",
+  "reason": "PostgreSQL configurado",
+  "importance": Para persistencia centralizada,
+  "timestamp": "2026-02-10 20:33:04"
+}
