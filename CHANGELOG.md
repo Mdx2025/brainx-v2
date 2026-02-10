@@ -2,7 +2,53 @@
 
 All notable changes to BrainX v2 are documented in this file.
 
-## [2.0.0] - 2024-02-10
+## [2.1.0] - 2026-02-10
+
+### Added
+
+**Metrics Tracking**
+- Token usage tracking per session/agent
+- Cost calculation (configurable per-token cost)
+- Session duration tracking
+- CSV export capability
+- Automatic cleanup of old entries
+
+**Distributed Scheduler**
+- Agent-aware cron jobs
+- Interval-based scheduling
+- Task enable/disable toggling
+- Crontab generation/export
+- Task execution logging
+- Webhook integration on completion
+
+**Webhooks System**
+- External notifications (Discord, Slack, custom)
+- Event-based triggering (session_start, session_end, decision, error)
+- HTTP methods support (POST, GET)
+- Automatic retry and error handling
+- Webhook history logs
+
+**Audit Logging**
+- Complete query trail
+- Memory access logging (read/write/update/delete)
+- Inter-agent message tracking
+- Security audit reports
+- Agent activity reports
+- Compliance export (JSON)
+
+**CLI Enhancements**
+- New `metrics` command group
+- New `schedule` command group
+- New `webhook` command group
+- New `audit` command group
+- Help text for all new commands
+
+**Multi-Agent Cluster**
+- 8 agents registered: clawma, coder, main, projects, reasoning, researcher, support, writer
+- PostgreSQL backend integration
+- Auto-load shell wrapper
+
+## [2.0.0] - 2026-02-10
 
 ### Added
 
