@@ -1,0 +1,25 @@
+{
+  "name": "brainx-v2",
+  "version": "2.0.0",
+  "description": "Unified Memory Intelligence System for OpenClaw",
+  "main": "brainx-v2",
+  "scripts": {
+    "start": "./brainx-v2 help",
+    "test": "./scripts/test.sh",
+    "demo": "./scripts/demo.sh"
+  },
+  "keywords": [
+    "brainx",
+    "memory",
+    "rag",
+    "intelligence",
+    "context",
+    "knowledge-base"
+  ],
+  "author": "OpenClaw",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/openclaw/brainx-v2/issues"
+  },
+  "homepage": "https://github.com/openclaw/brainx-v2"
+}

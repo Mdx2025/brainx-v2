@@ -1,0 +1,9 @@
+{
+  "id": "1770749843-327dc9fa635446dc",
+  "type": "decision",
+  "content": "Use caching for API calls\n",
+  "context": "Performance optimization\n",
+  "tier": "hot",
+  "timestamp": "2026-02-10 18:57:23",
+  "access_count": 0
+}
