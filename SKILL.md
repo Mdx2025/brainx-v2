@@ -2,6 +2,20 @@
 
 > A unified memory intelligence system integrating storage, RAG, hooks, scoring, optimization, and second-brain capabilities.
 
+## ⚠️ Deprecation Notice
+
+**The standalone `second-brain` skill has been deprecated.** All Second-Brain functionality is now integrated into BrainX v2:
+
+```bash
+# Old way (deprecated):
+second-brain add WORK "note"
+
+# New way (use brainx-v2):
+brainx-v2 sb add WORK "note"
+```
+
+All existing second-brain entries are automatically accessible via `brainx-v2 sb search`.
+
 ## Overview
 
 BrainX v2 consolidates four previously separate skills into a single, powerful memory intelligence system:
