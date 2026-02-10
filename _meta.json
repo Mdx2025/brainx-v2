@@ -1,0 +1,42 @@
+{
+  "name": "brainx-v2",
+  "displayName": "BrainX v2 - Unified Memory Intelligence System",
+  "version": "2.0.0",
+  "description": "Unified memory intelligence system integrating storage, RAG, hooks, scoring, optimization, and second-brain capabilities",
+  "author": "OpenClaw",
+  "license": "MIT",
+  "keywords": [
+    "memory",
+    "rag",
+    "intelligence",
+    "context",
+    "knowledge-base",
+    "optimization"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openclaw/brainx-v2"
+  },
+  "bugs": {
+    "url": "https://github.com/openclaw/brainx-v2/issues"
+  },
+  "dependencies": {
+    "memory-nucleo": ">=1.0.0",
+    "brainx": ">=1.0.0",
+    "brainx-optimizer": ">=1.0.0",
+    "second-brain": ">=1.0.0"
+  },
+  "engines": {
+    "openclaw": ">=1.0.0"
+  },
+  "skill": {
+    "type": "intelligence",
+    "entryPoint": "./brainx-v2",
+    "permissions": [
+      "memory:read",
+      "memory:write",
+      "context:read",
+      "context:write"
+    ]
+  }
+}

@@ -1,0 +1,217 @@
+#!/bin/bash
+# BrainX v2 - Unified Memory Intelligence System
+# Main CLI Entry Point
+#
+# Usage: brainx-v2 <command> [options]
+#
+# Integrates: memory-nucleo, brainx, brainx-optimizer, second-brain
+
+set -euo pipefail
+
+# === COLORS ===
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly CYAN='\033[0;36m'
+readonly WHITE='\033[1;37m'
+readonly NC='\033[0m' # No Color
+readonly BOLD='\033[1m'
+
+# === VERSION ===
+readonly BRAINX_VERSION="2.0.0"
+readonly BRAINX_HOME="${BRAINX_HOME:-/home/clawd/.openclaw/workspace/skills/brainx-v2}"
+
+# === LOAD CONFIG ===
+load_config() {
+    if [[ -f "$BRAINX_HOME/config/brainx.conf" ]]; then
+        source "$BRAINX_HOME/config/brainx.conf"
+    fi
+}
+
+# === LOAD LIBRARIES ===
+load_libraries() {
+    local lib_dir="$BRAINX_HOME/lib"
+    
+    # Core libraries first
+    [[ -f "$lib_dir/core.sh" ]] && source "$lib_dir/core.sh"
+    
+    # Feature libraries
+    [[ -f "$lib_dir/storage.sh" ]] && source "$lib_dir/storage.sh"
+    [[ -f "$lib_dir/rag.sh" ]] && source "$lib_dir/rag.sh"
+    [[ -f "$lib_dir/hooks.sh" ]] && source "$lib_dir/hooks.sh"
+    [[ -f "$lib_dir/registry.sh" ]] && source "$lib_dir/registry.sh"
+    [[ -f "$lib_dir/scoring.sh" ]] && source "$lib_dir/scoring.sh"
+    [[ -f "$lib_dir/filter.sh" ]] && source "$lib_dir/filter.sh"
+    [[ -f "$lib_dir/compressor.sh" ]] && source "$lib_dir/compressor.sh"
+    [[ -f "$lib_dir/batcher.sh" ]] && source "$lib_dir/batcher.sh"
+    [[ -f "$lib_dir/estimator.sh" ]] && source "$lib_dir/estimator.sh"
+    [[ -f "$lib_dir/caching.sh" ]] && source "$lib_dir/caching.sh"
+    [[ -f "$lib_dir/context.sh" ]] && source "$lib_dir/context.sh"
+    [[ -f "$lib_dir/inject.sh" ]] && source "$lib_dir/inject.sh"
+    [[ -f "$lib_dir/second-brain.sh" ]] && source "$lib_dir/second-brain.sh"
+}
+
+# === PRINT HELP ===
+print_help() {
+    cat <<EOF
+${BOLD}BrainX v${BRAINX_VERSION} - Unified Memory Intelligence System${NC}
+
+${BOLD}USAGE:${NC}
+    brainx-v2 <command> [options]
+
+${BOLD}MEMORY MANAGEMENT:${NC}
+    add <type> <content> [context] [tier]     Add memory to storage
+    get <id>                                   Get memory by ID
+    search <query>                             Search all memory
+    recall [context] [limit]                   Progressive recall
+
+${BOLD}STORAGE TIERS:${NC}
+    hot|warm|cold <subcommand>                 Manage tier (list, count, cleanup)
+
+${BOLD}AGENT HOOKS:${NC}
+    hook start <agent> <context>               Start session hook
+    hook decision <action> <reason> [imp]     Record decision
+    hook action <desc> <result> [tags]        Record action
+    hook learning <pattern> <lesson> [src]    Record learning
+    hook gotcha <issue> <workaround> [sev]    Record gotcha/workaround
+    hook end <summary>                          End session hook
+
+${BOLD}RAG SEARCH:${NC}
+    rag <query>                                Semantic RAG search
+    rag index <path>                           Index content
+
+${BOLD}SECOND-BRAIN:${NC}
+    sb add <category> <content>                Add to second-brain
+    sb search <query>                          Search second-brain
+    sb list                                    List categories
+
+${BOLD}OPTIMIZATION PIPELINE:${NC}
+    inject <query>                             Full injection pipeline
+    filter <query>                             Filter by relevance
+    compress <text>                            Compress text
+    batch <tool_calls>                         Batch tools
+    score <query> [memory_id]                  Score relevance
+
+${BOLD}UTILITIES:${NC}
+    agents                                     List registered agents
+    stats                                      Show statistics
+    health                                     System health check
+    help                                       Show this help
+
+${BOLD}EXAMPLES:${NC}
+    brainx-v2 add decision "Using cache" "Performance context" warm
+    brainx-v2 search "API authentication"
+    brainx-v2 rag "how to configure nginx"
+    brainx-v2 hook start claude "Working on project X"
+    brainx-v2 sb add commands "grep -r pattern" "Search recursively"
+
+EOF
+}
+
+# === MAIN ===
+main() {
+    load_config
+    load_libraries
+    
+    if [[ $# -eq 0 ]]; then
+        print_help
+        exit 0
+    fi
+    
+    local command="$1"
+    shift
+    
+    case "$command" in
+        # Memory Management
+        add)
+            brainx_mem_add "$@"
+            ;;
+        get)
+            brainx_mem_get "$@"
+            ;;
+        search)
+            brainx_mem_search "$@"
+            ;;
+        recall)
+            brainx_recall "$@"
+            ;;
+            
+        # Storage Tiers
+        hot|warm|cold)
+            brainx_tier_manage "$command" "$@"
+            ;;
+            
+        # Agent Hooks
+        hook)
+            brainx_hook_manage "$@"
+            ;;
+            
+        # RAG
+        rag)
+            brainx_rag_manage "$@"
+            ;;
+            
+        # Second-Brain
+        sb)
+            brainx_sb_manage "$@"
+            ;;
+            
+        # Optimization Pipeline
+        inject)
+            brainx_inject "$@"
+            ;;
+        filter)
+            brainx_filter "$@"
+            ;;
+        compress)
+            brainx_compress "$@"
+            ;;
+        batch)
+            brainx_batch "$@"
+            ;;
+        score)
+            brainx_score "$@"
+            ;;
+            
+        # Utilities
+        agents)
+            brainx_agents_list
+            ;;
+        stats)
+            brainx_stats
+            ;;
+        health)
+            brainx_health_check
+            ;;
+        help|--help|-h)
+            print_help
+            ;;
+            
+        *)
+            brainx_error "Unknown command: $command"
+            print_help
+            exit 1
+            ;;
+    esac
+}
+
+# === DEFAULT STUB FUNCTIONS (overridden by libraries) ===
+brainx_mem_add() { brainx_error "Command not implemented: add"; }
+brainx_mem_get() { brainx_error "Command not implemented: get"; }
+brainx_mem_search() { brainx_error "Command not implemented: search"; }
+brainx_recall() { brainx_error "Command not implemented: recall"; }
+brainx_tier_manage() { brainx_error "Command not implemented: tier"; }
+brainx_hook_manage() { brainx_error "Command not implemented: hook"; }
+brainx_rag_manage() { brainx_error "Command not implemented: rag"; }
+brainx_sb_manage() { brainx_error "Command not implemented: second-brain"; }
+brainx_inject() { brainx_error "Command not implemented: inject"; }
+brainx_filter() { brainx_error "Command not implemented: filter"; }
+brainx_compress() { brainx_error "Command not implemented: compress"; }
+brainx_batch() { brainx_error "Command not implemented: batch"; }
+brainx_score() { brainx_error "Command not implemented: score"; }
+brainx_agents_list() { brainx_error "Command not implemented: agents"; }
+brainx_stats() { brainx_error "Command not implemented: stats"; }
+brainx_health_check() { brainx_error "Command not implemented: health"; }
+
+main "$@"
