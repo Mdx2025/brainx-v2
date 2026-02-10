@@ -1,0 +1,276 @@
+#!/bin/bash
+# BrainX V2 Agent Wrapper - Multi-Agent Aware
+# Compatible con todos los workspaces de OpenClaw
+#
+# Detecta automáticamente el workspace y agent_id desde la ruta
+
+BRAINX_HOME="/home/clawd/.openclaw/workspace/skills/brainx-v2"
+WRAPPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG_FILE="$WRAPPER_DIR/logs/wrapper.log"
+
+# === AUTO-DETECT AGENT ID ===
+_detect_agent_id() {
+    local cwd="${WRAPPER_DIR%/brainx-wrapper}"
+    local ws_name="${cwd##*/}"  #，取得 workspace- 后面的部分
+    echo "${ws_name#workspace-}"
+}
+
+# Cargar configuración (puede sobreescribir detecciones automáticas)
+if [ -f "$WRAPPER_DIR/config.sh" ]; then
+    source "$WRAPPER_DIR/config.sh"
+else
+    # Configuración por defecto si no existe config.sh
+    BRAINX_AGENT_ID="$(_detect_agent_id)"
+    BRAINX_AGENT_NAME="@${BRAINX_AGENT_ID}"
+    BRAINX_WORKSPACE="${WRAPPER_DIR%/brainx-wrapper}"
+fi
+
+# === LOGGING ===
+log() {
+    local level="$1"
+    shift
+    local msg="[$(date '+%Y-%m-%d %H:%M:%S')] [${BRAINX_AGENT_ID:-unknown}] [$level] $*"
+    echo "$msg" >> "$LOG_FILE"
+}
+
+# Asegurar que el directorio de logs exista
+mkdir -p "$WRAPPER_DIR/logs"
+
+# === BRAINX V2 CLI WRAPPER ===
+brainx() {
+    if [ -z "$BRAINX_HOME" ] || [ ! -x "$BRAINX_HOME/brainx-v2" ]; then
+        log "ERROR" "BrainX V2 no encontrado en $BRAINX_HOME"
+        echo '{"status":"error","message":"BrainX V2 no instalado"}'
+        return 1
+    fi
+    "$BRAINX_HOME/brainx-v2" "$@"
+}
+
+# === HOOKS ===
+
+session_start() {
+    local context="${1:-}"
+    local session_id="session_$(date +%s)_$$"
+
+    log "info" "SESSION_START agent=$BRAINX_AGENT_ID context=$context"
+
+    # Registrar sesión en BrainX Central
+    if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
+        brainx hook start "$BRAINX_AGENT_ID" "$context" 2>/dev/null
+    fi
+
+    echo "$session_id"
+}
+
+session_decision() {
+    local action="$1"
+    local reason="$2"
+    local importance="${3:-5}"
+
+    log "info" "DECISION action=$action reason=$reason importance=$importance"
+
+    if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
+        brainx hook decision "$BRAINX_AGENT_ID" "$action" "$reason" "$importance" 2>/dev/null
+    fi
+}
+
+session_action() {
+    local description="$1"
+    local result="$2"
+    local tags="${3:-}"
+
+    log "info" "ACTION description=$description result=$result tags=$tags"
+
+    if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
+        brainx hook action "$BRAINX_AGENT_ID" "$description" "$result" "$tags" 2>/dev/null
+    fi
+}
+
+session_learning() {
+    local pattern="$1"
+    local lesson="$2"
+    local source="${3:-$BRAINX_AGENT_ID}"
+
+    log "info" "LEARNING pattern=$pattern lesson=$lesson source=$source"
+
+    if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
+        brainx hook learning "$BRAINX_AGENT_ID" "$pattern" "$lesson" "$source" 2>/dev/null
+    fi
+}
+
+session_gotcha() {
+    local issue="$1"
+    local workaround="$2"
+    local severity="${3:-medium}"
+
+    log "info" "GOTCHA issue=$issue workaround=$workaround severity=$severity"
+
+    if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
+        brainx hook gotcha "$BRAINX_AGENT_ID" "$issue" "$workaround" "$severity" 2>/dev/null
+    fi
+}
+
+session_end() {
+    local summary="$1"
+
+    log "info" "SESSION_END summary=$summary"
+
+    if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
+        brainx hook end "$BRAINX_AGENT_ID" "$summary" 2>/dev/null
+    fi
+}
+
+# === CONTEXT INJECTION ===
+
+inject_context() {
+    local query="$1"
+
+    log "info" "INJECT query=$query"
+
+    brainx inject "$query" 2>/dev/null
+}
+
+search_memory() {
+    local query="$1"
+
+    brainx search "$query" 2>/dev/null
+}
+
+# === AGENT CONTEXT (Inter-agente) ===
+
+# Enviar mensaje a otro agente
+agent_send() {
+    local target_agent="$1"
+    local message="$2"
+
+    log "info" "SEND to=@$target_agent message=$message"
+
+    # Usar OpenClaw sessions_send si está disponible
+    if command -v sessions_send &>/dev/null; then
+        sessions_send --label "$target_agent" --message "$message"
+    else
+        echo "sessions_send no disponible"
+    fi
+}
+
+# Broadcast a todos los agentes
+agent_broadcast() {
+    local message="$1"
+
+    log "info" "BROADCAST message=$message"
+
+    brainx broadcast "$BRAINX_AGENT_ID" "$message" 2>/dev/null
+}
+
+# === MAIN ===
+
+run_with_context() {
+    local query="$1"
+    shift
+    local agent_cmd="$@"
+
+    local context
+    context=$(inject_context "$query")
+
+    log "info" "Running with context: ${context:0:100}..."
+
+    eval "$agent_cmd"
+}
+
+# === UTILS ===
+
+health_check() {
+    echo "{\"agent\":\"$BRAINX_AGENT_ID\",\"status\":\"checking\",\"wrapper_version\":\"v2-multi\"}"
+
+    if [ -x "$BRAINX_HOME/brainx-v2" ]; then
+        brainx health 2>/dev/null || echo '{"brainx":"unreachable"}'
+    else
+        echo '{"brainx":"not_found"}'
+    fi
+}
+
+show_status() {
+    cat << EOF
+BrainX V2 Wrapper Status:
+  Agent:     $BRAINX_AGENT_NAME
+  Workspace: $BRAINX_WORKSPACE
+  Wrapper:   $WRAPPER_DIR
+  BrainX:    $BRAINX_HOME
+  Central:   ${BRAINX_CENTRAL_ENABLED:-disabled}
+EOF
+}
+
+show_help() {
+    cat << EOF
+BrainX V2 Agent Wrapper (@$BRAINX_AGENT_ID) - Comandos disponibles:
+
+=== SESIÓN ===
+  session_start [context]           - Iniciar sesión de trabajo
+  session_decision <action> <reason> [importance] - Registrar decisión
+  session_action <desc> <result> [tags] - Registrar acción completada
+  session_learning <pattern> <lesson> [source] - Registrar aprendizaje
+  session_gotcha <issue> <workaround> [severity] - Registrar workaround
+  session_end [summary]              - Finalizar sesión
+
+=== MEMORIA ===
+  inject_context <query>            - Inyectar contexto relevante
+  search_memory <query>             - Buscar en memorias globales
+
+=== INTER-AGENTE ===
+  agent_send <agent> <message>      - Enviar mensaje a otro agente
+  agent_broadcast <message>         - Broadcast a todos los agentes
+
+=== UTILS ===
+  run_with_context <query> <cmd>    - Ejecutar comando con contexto
+  health_check                      - Verificar estado
+  show_status                       - Mostrar estado del wrapper
+  show_help                         - Este help
+
+=== AUTO-DETECCIÓN ===
+  Agent ID se detecta automáticamente desde: $WRAPPER_DIR
+  Override: Set BRAINX_AGENT_ID antes de sourcear
+
+Para usar:
+  source $WRAPPER_DIR/agent-wrapper
+
+Ejemplo:
+  source /home/clawd/.openclaw/workspace-coder/brainx-wrapper/agent-wrapper
+  session_start "implementando API"
+  session_decision "Usar REST" "Porque es estándar" 7
+  ... trabajo ...
+  session_end "API completada"
+EOF
+}
+
+# === AUTO-DECISION (Pattern Matching) ===
+auto_decision() {
+    local message="$1"
+
+    # Detectar decisiones automáticamente
+    if echo "$message" | grep -qiE "(decidi|decisión|elegi|choose|decision|seleccioné)"; then
+        local action
+        action=$(echo "$message" | grep -oE "[A-Z][A-Za-z0-9 ]+" | head -1)
+        session_decision "${action:-decision}" "$message" 5
+    fi
+}
+
+# === INICIALIZACIÓN ===
+_init_wrapper() {
+    log "info" "=== Wrapper inicializado para @$BRAINX_AGENT_ID ==="
+
+    # Health check en background
+    if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
+        brainx health >> /dev/null 2>&1 || log "warn" "BrainX V2 no responde"
+    fi
+}
+
+_init_wrapper
+
+# === INTERFAZ ===
+if [ $# -eq 0 ]; then
+    show_help
+    exit 0
+fi
+
+# Ejecutar comando solicitado
+"$@"
