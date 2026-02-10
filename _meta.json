@@ -2,7 +2,7 @@
   "name": "brainx-v2",
   "displayName": "BrainX v2 - Unified Memory Intelligence System",
   "version": "2.0.0",
-  "description": "Unified memory intelligence system integrating storage, RAG, hooks, scoring, optimization, and second-brain capabilities",
+  "description": "Unified memory intelligence system integrating storage, RAG, hooks, scoring, optimization, and legacy second-brain functionality",
   "author": "OpenClaw",
   "license": "MIT",
   "keywords": [
@@ -23,8 +23,7 @@
   "dependencies": {
     "memory-nucleo": ">=1.0.0",
     "brainx": ">=1.0.0",
-    "brainx-optimizer": ">=1.0.0",
-    "second-brain": ">=1.0.0"
+    "brainx-optimizer": ">=1.0.0"
   },
   "engines": {
     "openclaw": ">=1.0.0"

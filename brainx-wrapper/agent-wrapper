@@ -4,6 +4,11 @@
 #
 # Detecta automáticamente el workspace y agent_id desde la ruta
 
+# Detectar si está siendo sourceado
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    export BRAINX_SOURCED=true
+fi
+
 BRAINX_HOME="/home/clawd/.openclaw/workspace/skills/brainx-v2"
 WRAPPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="$WRAPPER_DIR/logs/wrapper.log"
@@ -69,6 +74,9 @@ session_decision() {
 
     log "info" "DECISION action=$action reason=$reason importance=$importance"
 
+    # Persistir en DB
+    _db_persist_decision "$action" "$reason" "$importance"
+
     if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
         brainx hook decision "$BRAINX_AGENT_ID" "$action" "$reason" "$importance" 2>/dev/null
     fi
@@ -80,6 +88,9 @@ session_action() {
     local tags="${3:-}"
 
     log "info" "ACTION description=$description result=$result tags=$tags"
+
+    # Persistir en DB
+    _db_persist_action "$description" "$result" "$tags"
 
     if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
         brainx hook action "$BRAINX_AGENT_ID" "$description" "$result" "$tags" 2>/dev/null
@@ -93,6 +104,9 @@ session_learning() {
 
     log "info" "LEARNING pattern=$pattern lesson=$lesson source=$source"
 
+    # Persistir en DB
+    _db_persist_learning "$pattern" "$lesson" "$source"
+
     if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
         brainx hook learning "$BRAINX_AGENT_ID" "$pattern" "$lesson" "$source" 2>/dev/null
     fi
@@ -104,6 +118,9 @@ session_gotcha() {
     local severity="${3:-medium}"
 
     log "info" "GOTCHA issue=$issue workaround=$workaround severity=$severity"
+
+    # Persistir en DB
+    _db_persist_gotcha "$issue" "$workaround" "$severity"
 
     if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
         brainx hook gotcha "$BRAINX_AGENT_ID" "$issue" "$workaround" "$severity" 2>/dev/null
@@ -118,6 +135,36 @@ session_end() {
     if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
         brainx hook end "$BRAINX_AGENT_ID" "$summary" 2>/dev/null
     fi
+}
+
+# === DATABASE PERSISTENCE (PostgreSQL) ===
+_db_exec() {
+    PGPASSWORD=brainx psql -h localhost -U brainx -d brainx_v2 -t -A -c "$1" 2>/dev/null
+}
+
+_db_persist_decision() {
+    local action="$1" reason="$2" importance="$3"
+    _db_exec "INSERT INTO brainx_decisions (agent_id, action, reason, importance) VALUES ('$BRAINX_AGENT_ID', '$action', '$reason', $importance);"
+}
+
+_db_persist_action() {
+    local desc="$1" result="$2" tags="$3"
+    _db_exec "INSERT INTO brainx_actions (agent_id, description, result, tags) VALUES ('$BRAINX_AGENT_ID', '$desc', '$result', ARRAY[$tags]);"
+}
+
+_db_persist_learning() {
+    local pattern="$1" lesson="$2" source="$3"
+    _db_exec "INSERT INTO brainx_learnings (agent_id, pattern, lesson, source) VALUES ('$BRAINX_AGENT_ID', '$pattern', '$lesson', '$source');"
+}
+
+_db_persist_gotcha() {
+    local issue="$1" workaround="$2" severity="$3"
+    _db_exec "INSERT INTO brainx_gotchas (agent_id, issue, workaround, severity) VALUES ('$BRAINX_AGENT_ID', '$issue', '$workaround', '$severity');"
+}
+
+_db_persist_message() {
+    local from="$1" to="$2" msg="$3" broadcast="$4"
+    _db_exec "INSERT INTO brainx_messages (from_agent, to_agent, message, broadcast) VALUES ('$from', '$to', '$msg', $broadcast);"
 }
 
 # === CONTEXT INJECTION ===
@@ -145,6 +192,9 @@ agent_send() {
 
     log "info" "SEND to=@$target_agent message=$message"
 
+    # Persistir en DB
+    _db_persist_message "$BRAINX_AGENT_ID" "$target_agent" "$message" "false"
+
     # Usar OpenClaw sessions_send si está disponible
     if command -v sessions_send &>/dev/null; then
         sessions_send --label "$target_agent" --message "$message"
@@ -158,6 +208,9 @@ agent_broadcast() {
     local message="$1"
 
     log "info" "BROADCAST message=$message"
+
+    # Persistir en DB
+    _db_persist_message "$BRAINX_AGENT_ID" "all" "$message" "true"
 
     brainx broadcast "$BRAINX_AGENT_ID" "$message" 2>/dev/null
 }
@@ -268,8 +321,15 @@ _init_wrapper
 
 # === INTERFAZ ===
 if [ $# -eq 0 ]; then
-    show_help
-    exit 0
+    # Si se está sourceando (return disponible), mostrar help y retornar
+    # Si no se puede returnear (script ejecutándose), mostrar help y salir
+    if [ "${BRAINX_SOURCED:-false}" == "true" ]; then
+        show_help
+        return 0 2>/dev/null || true
+    else
+        show_help
+        exit 0
+    fi
 fi
 
 # Ejecutar comando solicitado
