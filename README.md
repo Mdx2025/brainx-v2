@@ -252,7 +252,6 @@ show_status                    # Show wrapper status
 | clawma | workspace-clawma | ready |
 | coder | workspace-coder | ready |
 | main | workspace-main | ready |
-| projects | workspace-projects | ready |
 | reasoning | workspace-reasoning | ready |
 | researcher | workspace-researcher | ready |
 | support | workspace-support | ready |

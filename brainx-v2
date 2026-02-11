@@ -1,11 +1,5 @@
 #!/bin/bash
 # BrainX v2 - Unified Memory Intelligence System
-# Main CLI Entry Point
-#
-# Usage: brainx-v2 <command> [options]
-#
-# Integrates: memory-nucleo, brainx, brainx-optimizer, second-brain
-
 set -euo pipefail
 
 # === COLORS ===
@@ -15,47 +9,48 @@ readonly YELLOW='\033[1;33m'
 readonly BLUE='\033[0;34m'
 readonly CYAN='\033[0;36m'
 readonly WHITE='\033[1;37m'
-readonly NC='\033[0m' # No Color
+readonly NC='\033[0m'
 readonly BOLD='\033[1m'
 
 # === VERSION ===
-readonly BRAINX_VERSION="2.0.0"
+readonly BRAINX_VERSION="2.1.0"
 readonly BRAINX_HOME="${BRAINX_HOME:-/home/clawd/.openclaw/workspace/skills/brainx-v2}"
 
 # === LOAD CONFIG ===
 load_config() {
-    if [[ -f "$BRAINX_HOME/config/brainx.conf" ]]; then
-        source "$BRAINX_HOME/config/brainx.conf"
-    fi
+    [[ -f "$BRAINX_HOME/config/brainx.conf" ]] && source "$BRAINX_HOME/config/brainx.conf"
 }
 
 # === LOAD LIBRARIES ===
 load_libraries() {
     local lib_dir="$BRAINX_HOME/lib"
-    
-    # Core libraries first
-    [[ -f "$lib_dir/core.sh" ]] && source "$lib_dir/core.sh"
-    
-    # Feature libraries
-    [[ -f "$lib_dir/storage.sh" ]] && source "$lib_dir/storage.sh"
-    [[ -f "$lib_dir/rag.sh" ]] && source "$lib_dir/rag.sh"
-    [[ -f "$lib_dir/hooks.sh" ]] && source "$lib_dir/hooks.sh"
-    [[ -f "$lib_dir/registry.sh" ]] && source "$lib_dir/registry.sh"
-    [[ -f "$lib_dir/scoring.sh" ]] && source "$lib_dir/scoring.sh"
-    [[ -f "$lib_dir/filter.sh" ]] && source "$lib_dir/filter.sh"
-    [[ -f "$lib_dir/compressor.sh" ]] && source "$lib_dir/compressor.sh"
-    [[ -f "$lib_dir/batcher.sh" ]] && source "$lib_dir/batcher.sh"
-    [[ -f "$lib_dir/estimator.sh" ]] && source "$lib_dir/estimator.sh"
-    [[ -f "$lib_dir/caching.sh" ]] && source "$lib_dir/caching.sh"
-    [[ -f "$lib_dir/context.sh" ]] && source "$lib_dir/context.sh"
-    [[ -f "$lib_dir/inject.sh" ]] && source "$lib_dir/inject.sh"
-    [[ -f "$lib_dir/second-brain.sh" ]] && source "$lib_dir/second-brain.sh"
-    [[ -f "$lib_dir/metrics.sh" ]] && source "$lib_dir/metrics.sh"
-    [[ -f "$lib_dir/scheduler.sh" ]] && source "$lib_dir/scheduler.sh"
-    [[ -f "$lib_dir/webhooks.sh" ]] && source "$lib_dir/webhooks.sh"
-    [[ -f "$lib_dir/audit.sh" ]] && source "$lib_dir/audit.sh"
+    source "$lib_dir/core.sh"
+    source "$lib_dir/counter.sh"
+    source "$lib_dir/storage.sh"
+    source "$lib_dir/rag.sh"
+    source "$lib_dir/hooks.sh"
+    source "$lib_dir/registry.sh"
+    source "$lib_dir/scoring.sh"
+    source "$lib_dir/filter.sh"
+    source "$lib_dir/compressor.sh"
+    source "$lib_dir/batcher.sh"
+    source "$lib_dir/estimator.sh"
+    source "$lib_dir/caching.sh"
+    source "$lib_dir/context.sh"
+    source "$lib_dir/inject.sh"
+    source "$lib_dir/second-brain.sh"
+    source "$lib_dir/metrics.sh"
+    source "$lib_dir/scheduler.sh"
+    source "$lib_dir/webhooks.sh"
+    source "$lib_dir/audit.sh"
+    source "$lib_dir/truncator.sh"
+    source "$lib_dir/relevance.sh"
+    source "$lib_dir/optimizer.sh"
+    # New optimization modules
+    source "$lib_dir/local_compressor.sh"
+    source "$lib_dir/summarizer.sh"
+    source "$lib_dir/dedup.sh"
 }
-
 # === PRINT HELP ===
 print_help() {
     cat <<EOF
@@ -94,8 +89,19 @@ ${BOLD}OPTIMIZATION PIPELINE:${NC}
     inject <query>                             Full injection pipeline
     filter <query>                             Filter by relevance
     compress <text>                            Compress text
-    batch <tool_calls>                         Batch tools
-    score <query> [memory_id]                   Score relevance
+    local-compress <text>                      Compress with local model
+    local-health                               Check local model status
+    dedup <items.json>                         Semantic deduplication
+    summarize <messages.json>                  Progressive summarization
+    count <text>                               Count tokens
+    truncate <json>                           Truncate history
+    relevance <query> <context>                Calculate relevance score
+    optimize <query> [system] [history]       Full optimization pipeline
+    diagnose <context>                         Diagnose context size
+
+${BOLD}TOKEN & COST:${NC}
+    cost <text> [model]                       Estimate cost
+    budget                                     Show budget status
 
 ${BOLD}METRICS & TRACKING:${NC}
     metrics start <agent> <context>            Start tracking session
@@ -201,11 +207,38 @@ main() {
         compress)
             brainx_compress "$@"
             ;;
-        batch)
-            brainx_batch "$@"
+        local-compress)
+            brainx_local_compress "$@"
             ;;
-        score)
-            brainx_score "$@"
+        local-health)
+            brainx_local_health
+            ;;
+        dedup)
+            brainx_dedup "$@"
+            ;;
+        summarize)
+            brainx_summarize "$@"
+            ;;
+        count)
+            brainx_count "$@"
+            ;;
+        truncate)
+            brainx_truncate "$@"
+            ;;
+        relevance)
+            brainx_relevance "$@"
+            ;;
+        optimize)
+            brainx_optimize "$@"
+            ;;
+        diagnose)
+            brainx_diagnose "$@"
+            ;;
+        cost)
+            brainx_cost "$@"
+            ;;
+        budget)
+            brainx_budget "$@"
             ;;
             
         # Metrics
@@ -394,5 +427,80 @@ brainx_audit_manage() {
 brainx_agents_list() { brainx_error "Command not implemented: agents"; }
 brainx_stats() { brainx_error "Command not implemented: stats"; }
 brainx_health_check() { brainx_error "Command not implemented: health"; }
+
+# === OPTIMIZATION COMMANDS ===
+brainx_count() {
+    local text="${*:-}"
+    if [[ -z "$text" ]]; then
+        brainx_error "Usage: brainx-v2 count <text>"
+        return 1
+    fi
+    count_tokens_verbose "$text"
+}
+
+brainx_truncate() {
+    local json="${1:-}"
+    if [[ -z "$json" ]]; then
+        brainx_error "Usage: brainx-v2 truncate <json>"
+        return 1
+    fi
+    smart_truncate "$json"
+}
+
+brainx_relevance() {
+    local query="${1:-}"
+    local context="${2:-}"
+    if [[ -z "$query" ]]; then
+        brainx_error "Usage: brainx-v2 relevance <query> <context>"
+        return 1
+    fi
+    local score=$(calculate_relevance "$query" "$context")
+    local verdict=$(relevance_verdict "$score")
+    echo "Score: $score (threshold: $RELEVANCE_THRESHOLD)"
+    echo "Verdict: $verdict"
+}
+
+brainx_optimize() {
+    local query="${1:-}"
+    if [[ -z "$query" ]]; then
+        brainx_error "Usage: brainx-v2 optimize <query> [system_prompt] [history_json]"
+        return 1
+    fi
+    local system_prompt="${2:-}"
+    local history="${3:-}"
+    optimize_context "$query" "$system_prompt" "$history" ""
+}
+
+brainx_diagnose() {
+    local context="${1:-}"
+    if [[ -z "$context" ]]; then
+        brainx_error "Usage: brainx-v2 diagnose <context>"
+        return 1
+    fi
+    diagnose_context "$context"
+}
+
+brainx_cost() {
+    local text="${1:-}"
+    local model="${2:-MiniMax-M2.1}"
+    if [[ -z "$text" ]]; then
+        brainx_error "Usage: brainx-v2 cost <text> [model]"
+        return 1
+    fi
+    cost_optimize "$text" "$model"
+}
+
+brainx_budget() {
+    cat <<EOF
+${BOLD}Token Budget Configuration${NC}
+================================
+Budget: $(format_tokens $TOKEN_BUDGET)
+Warning Threshold: $(format_tokens $WARNING_THRESHOLD)
+COST_INPUT: \$$COST_INPUT per 1M
+COST_OUTPUT: \$$COST_OUTPUT per 1M
+COST_CACHE_READ: \$$COST_CACHE_READ per 1M
+COST_CACHE_WRITE: \$$COST_CACHE_WRITE per 1M
+EOF
+}
 
 main "$@"

@@ -1,0 +1,9 @@
+{
+  "id": "1770814365-ee55d013aae76e33",
+  "type": "decision",
+  "content": "Usar nginx para servidor web\n",
+  "context": "Configuración de servidor\n",
+  "tier": "warm",
+  "timestamp": "2026-02-11 12:52:45",
+  "access_count": 3
+}

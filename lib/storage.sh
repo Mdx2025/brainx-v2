@@ -81,14 +81,29 @@ storage_search() {
     local results=()
     
     # Search in all tiers
+    # Convert query to lowercase for case-insensitive search
+    local query_lower
+    query_lower=$(echo "$query" | tr '[:upper:]' '[:lower:]')
+    
     for tier in hot warm cold; do
         local storage_dir="$BRAINX_HOME/storage/$tier"
         if [[ -d "$storage_dir" ]]; then
             while IFS= read -r -d '' file; do
-                if jq -e --arg query "$query" \
-                    '(.content | contains($query)) or (.context | contains($query))' \
-                    "$file" 2>/dev/null; then
-                    
+                # Get content and context from file
+                local content context
+                content=$(jq -r '.content' "$file" 2>/dev/null | tr '[:upper:]' '[:lower:]')
+                context=$(jq -r '.context' "$file" 2>/dev/null | tr '[:upper:]' '[:lower:]')
+                
+                # Check if any word from query is in content or context
+                local match=false
+                for word in $query_lower; do
+                    if [[ "$content" == *"$word"* ]] || [[ "$context" == *"$word"* ]]; then
+                        match=true
+                        break
+                    fi
+                done
+                
+                if [[ "$match" == "true" ]]; then
                     local id tier_name
                     id=$(jq -r '.id' "$file")
                     tier_name=$(jq -r '.tier' "$file")

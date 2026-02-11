@@ -44,7 +44,7 @@ All notable changes to BrainX v2 are documented in this file.
 - Help text for all new commands
 
 **Multi-Agent Cluster**
-- 8 agents registered: clawma, coder, main, projects, reasoning, researcher, support, writer
+- 7 agents registered: clawma, coder, main, reasoning, researcher, support, writer
 - PostgreSQL backend integration
 - Auto-load shell wrapper
 

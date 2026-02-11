@@ -1,0 +1,8 @@
+{
+  "id": "1770758353-f6985cb94ecbc43a",
+  "type": "gotcha",
+  "issue": "main",
+  "workaround": "Workspaces分散 - código no compartido",
+  "severity": "Solución: crear workspace-projects/ con symlinks. Usar .sync-projects.sh para nuevos proyectos",
+  "timestamp": "2026-02-10 21:19:13"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "1770757985-c02db73951f90569",
+  "type": "session_start",
+  "agent": "test-agent",
+  "context": "Session started: test-agent in test-context",
+  "timestamp": "2026-02-10 21:13:05"
+}

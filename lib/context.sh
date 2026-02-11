@@ -17,12 +17,18 @@ build_context() {
     memories=$(storage_search "$query")
     
     while IFS= read -r memory_line; do
+        # Skip empty lines
+        [[ -z "$memory_line" ]] && continue
+        
         local id tier
         id=$(echo "$memory_line" | cut -d: -f1)
         tier=$(echo "$memory_line" | cut -d: -f2)
         
+        # Skip if id is empty
+        [[ -z "$id" ]] && continue
+        
         local memory_json
-        memory_json=$(storage_get "$id")
+        memory_json=$(storage_get "$id" 2>/dev/null) || continue
         
         local type content timestamp
         type=$(echo "$memory_json" | jq -r '.type')

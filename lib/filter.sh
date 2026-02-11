@@ -7,15 +7,20 @@ set -euo pipefail
 # === FILTER BY THRESHOLD ===
 filter_threshold() {
     local threshold="${1:-70}"
-    local results=("${@:2}")
+    shift
+    local results=("$@")
     
     local filtered=()
     
     for result in "${results[@]}"; do
+        # Skip empty results
+        [[ -z "$result" ]] && continue
+        
         local score
         score=$(echo "$result" | cut -d: -f1)
         
-        if [[ $score -ge $threshold ]]; then
+        # Validate score is numeric
+        if [[ "$score" =~ ^[0-9]+$ ]] && [[ $score -ge $threshold ]]; then
             filtered+=("$result")
         fi
     done

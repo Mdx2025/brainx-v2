@@ -311,6 +311,12 @@ auto_decision() {
 _init_wrapper() {
     log "info" "=== Wrapper inicializado para @$BRAINX_AGENT_ID ==="
 
+    # Cargar hybrid memory por defecto
+    if [ -f "$WRAPPER_DIR/hybrid-memory.sh" ]; then
+        source "$WRAPPER_DIR/hybrid-memory.sh"
+        log "info" "Hybrid Memory loaded"
+    fi
+
     # Health check en background
     if [ "${BRAINX_CENTRAL_ENABLED:-false}" == "true" ]; then
         brainx health >> /dev/null 2>&1 || log "warn" "BrainX V2 no responde"
@@ -318,6 +324,24 @@ _init_wrapper() {
 }
 
 _init_wrapper
+
+# === AUTO-HOOK: Session Start con Hybrid Memory ===
+_session_start_hooked() {
+    local context="${1:-}"
+    
+    # Llamar session_start original
+    session_start "$context"
+    
+    # Hybrid memory briefing automático
+    if [ "$BRAINX_HYBRID_ENABLED" == "true" ]; then
+        hybrid_session_start "$context"
+    fi
+}
+
+# Sobrescribir session_start con la versión hookeada
+session_start() {
+    _session_start_hooked "$@"
+}
 
 # === INTERFAZ ===
 if [ $# -eq 0 ]; then

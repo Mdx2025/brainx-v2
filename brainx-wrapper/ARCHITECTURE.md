@@ -123,7 +123,6 @@ run_with_context "autenticación JWT" "$MI_COMANDO"
 | researcher | workspace-researcher | ⏳ | 待部署 |
 | reasoning | workspace-reasoning | ⏳ | 待部署 |
 | support | workspace-support | ⏳ | 待部署 |
-| projects | workspace-projects | ⏳ | 待部署 |
 
 ## 数据流
 

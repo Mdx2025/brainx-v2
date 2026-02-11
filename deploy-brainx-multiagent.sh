@@ -26,6 +26,12 @@ deploy_to_agents() {
         # Copy agent-wrapper
         cp "$WRAPPER_DIR/agent-wrapper" "$agent_dir/brainx-wrapper/"
         
+        # Copy auto-integrate for automatic optimization
+        cp "$WRAPPER_DIR/auto-integrate.sh" "$agent_dir/brainx-wrapper/"
+        
+        # Copy hybrid memory module
+        cp "$WRAPPER_DIR/hybrid-memory.sh" "$agent_dir/brainx-wrapper/"
+        
         # Create optimized context script
         cat > "$agent_dir/brainx-wrapper/optimize-context.sh" << 'SCRIPT'
 #!/bin/bash
@@ -83,9 +89,9 @@ verify() {
     local total=0
     
     for agent_dir in "$AGENTS_DIR"/*/; do
-        ((total++))
+        total=$((total + 1))
         if [[ -f "$agent_dir/brainx-wrapper/agent-wrapper" ]]; then
-            ((ok++))
+            ok=$((ok + 1))
             echo "  ✓ $(basename "$agent_dir")"
         fi
     done
