@@ -1,5 +1,9 @@
 # BrainX V2 Skill
 
+> **Versión:** v2.1.0 (Production) - 2026-02-12
+> **Ubicación:** `/home/clawd/.openclaw/workspace/skills/brainx-v2/`
+> **Estado:** ✅ Production Ready
+
 ## Descripción General
 
 BrainX V2 es el sistema unificado de inteligencia de memoria e optimización de contexto para OpenClaw. Integra gestión de memoria, RAG, y optimización de tokens en un solo CLI.

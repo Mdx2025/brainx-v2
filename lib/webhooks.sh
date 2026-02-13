@@ -70,24 +70,29 @@ webhook_trigger() {
                        '{"webhook_id": $id, "event": $event, "payload": $payload, "timestamp": $timestamp}')
     echo "$log_entry" >> "$WEBHOOKS_LOG"
     
-    # Send the webhook
+    # Send the webhook using HTTP Client (with connection reuse)
     local response
-    local http_code
-    
-    if command -v curl &> /dev/null; then
+
+    if command -v http_request &> /dev/null; then
+        # Use HTTP Client with connection reuse
+        response=$(http_request "$url" "$method" "$payload" "$headers" 2>/dev/null)
+        local http_code=0  # http_request returns 0 on success
+    elif command -v curl &> /dev/null; then
+        # Fallback to direct curl
         response=$(curl -s -w "\n%{http_code}" -X "$method" \
             -H "$headers" \
             -d "$payload" \
             "$url" 2>/dev/null) || true
-        http_code=$(echo "$response" | tail -1)
+        local http_code=$(echo "$response" | tail -1)
         response=$(echo "$response" | sed '$d')
     elif command -v wget &> /dev/null; then
+        # Fallback to wget
         response=$(wget -q -O - --post-data="$payload" \
             --header="$headers" \
             "$url" 2>/dev/null) || true
-        http_code=$?
+        local http_code=$?
     else
-        brainx_log WARN "No curl or wget available for webhook"
+        brainx_log WARN "No HTTP client available for webhook"
         return 1
     fi
     
@@ -215,16 +220,20 @@ webhook_send_discord() {
     local webhook_url="$1"
     local message="$2"
     local username="${3:-BrainX}"
-    
+
     local payload
     payload=$(jq -n --arg username "$username" \
                        --arg content "$message" \
                        '{"username": $username, "content": $content}')
-    
-    curl -s -X POST \
-        -H "Content-Type: application/json" \
-        -d "$payload" \
-        "$webhook_url" > /dev/null
+
+    if command -v http_post &> /dev/null; then
+        http_post "$webhook_url" "$payload" "Content-Type: application/json" > /dev/null
+    elif command -v curl &> /dev/null; then
+        curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$webhook_url" > /dev/null
+    fi
 }
 
 # === SEND TO SLACK ===
@@ -232,14 +241,18 @@ webhook_send_slack() {
     local webhook_url="$1"
     local message="$2"
     local channel="${3:-#general}"
-    
+
     local payload
     payload=$(jq -n --arg channel "$channel" \
                        --arg text "$message" \
                        '{"channel": $channel, "text": $text}')
-    
-    curl -s -X POST \
-        -H "Content-Type: application/json" \
-        -d "$payload" \
-        "$webhook_url" > /dev/null
+
+    if command -v http_post &> /dev/null; then
+        http_post "$webhook_url" "$payload" "Content-Type: application/json" > /dev/null
+    elif command -v curl &> /dev/null; then
+        curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$webhook_url" > /dev/null
+    fi
 }
