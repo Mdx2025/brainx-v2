@@ -66,7 +66,7 @@ lightweight_recall() {
         # Search hot first, then warm
         for tier in hot warm; do
             local matches
-            matches=$(grep -rl "$keyword" "$storage_dir/$tier"/*.json 2>/dev/null | head -5)
+            matches=$(grep -rli "$keyword" "$storage_dir/$tier"/*.json 2>/dev/null | head -5)
             
             for file in $matches; do
                 if [[ -f "$file" ]] && [[ $found -lt $limit ]]; then
