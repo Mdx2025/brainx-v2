@@ -1,12 +1,12 @@
 # BrainX V2 Skill
 
-> **Versión:** v2.1.0 (Production) - 2026-02-12
+> **Versión:** v2.2.0 (Production) - 2026-02-13
 > **Ubicación:** `/home/clawd/.openclaw/workspace/skills/brainx-v2/`
 > **Estado:** ✅ Production Ready
 
 ## Descripción General
 
-BrainX V2 es el sistema unificado de inteligencia de memoria e optimización de contexto para OpenClaw. Integra gestión de memoria, RAG, y optimización de tokens en un solo CLI.
+BrainX V2 es el sistema unificado de inteligencia de memoria e optimización de contexto para OpenClaw. Integra gestión de memoria, RAG, optimización de tokens y **auto-inyección de entidades** en un solo CLI.
 
 ## Características Principales
 
@@ -14,13 +14,19 @@ BrainX V2 es el sistema unificado de inteligencia de memoria e optimización de 
 - **Almacenamiento en tiers**: HOT (crítico), WARM (activo), COLD (archivado)
 - **Búsqueda semántica**: RAG con scoring de relevancia
 - **Hooks de agentes**: Auto-registro de decisiones, acciones, aprendizajes
+- **Auto-extracción**: Plugin memory-inyection detecta y guarda automáticamente
 
-### ⚡ Optimización de Contexto (NUEVO)
+### ⚡ Optimización de Contexto
 - **Compresión de prompts**: Reduce tokens 40-60%
 - **Conteo de tokens**: Tiktoken + fallback
 - **Truncación inteligente**: Mantiene bajo presupuesto
 - **Relevance Scoring**: Filtra contexto irrelevante
 - **Prompt Caching**: 90% descuento en cache hits
+
+### 🔗 Integración OpenClaw (NUEVO v2.2)
+- **memory-inyection**: Plugin que auto-detecta emails, URLs, GitHub, finanzas, errores
+- **openclaw-memory-hook.sh**: Unificador de recall/inject con fallbacks
+- **Pipeline unificado**: BrainX V2 → Lightweight Recall → grep+jq fallback
 
 ### 📊 Métricas y Seguimiento
 - Tracking de sesiones
@@ -122,6 +128,72 @@ source /home/clawd/.openclaw/workspace/skills/brainx-v2/brainx-v2
 # Optimizar antes de enviar
 optimized=$(optimize_context "$query" "$system" "$history")
 brainx cost "$optimized"
+```
+
+## Integración con Memory-Inyection (NUEVO)
+
+El plugin `memory-inyection` detecta automáticamente entidades en mensajes entrantes y las guarda en BrainX V2 storage.
+
+### Entidades Auto-Detectadas
+| Tipo | Patrón | Tier |
+|------|--------|------|
+| Email | `user@domain.com` | warm |
+| GitHub | `github.com/user/repo` | cold |
+| Finanzas | `$100`, `€50`, `BTC 0.5` | hot |
+| Errores | Stacktraces | hot |
+| Secrets | API keys (redacted) | hot |
+| URLs | `https://...` | cold |
+| Fechas | `2024-01-15`, `deadline` | warm |
+
+### Plugin Location
+```
+/home/clawd/.openclaw/extensions/memory-inyection/
+```
+
+### Uso del Unificador
+```bash
+source /home/clawd/.openclaw/workspace/skills/brainx-v2/openclaw-memory-hook.sh
+
+# Recall con fallbacks automáticos
+openclaw_recall "database config"
+
+# Inyectar contexto formateado
+openclaw_inject_context "railway deployment" 5
+
+# Checkpoint de sesión
+openclaw_checkpoint "working on emailbot"
+
+# Ver estado del sistema
+openclaw_memory_status
+```
+
+### Arquitectura de Integración
+```
+Mensaje entrante
+      │
+      ▼
+┌─────────────────────┐
+│  memory-inyection   │ ← Plugin OpenClaw
+│  (auto-detect)      │
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│   BrainX V2         │ ← Storage unificado
+│   storage/{tier}/   │   Hot/Warm/Cold
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│ openclaw-memory-    │ ← Unificador
+│ hook.sh             │   Con fallbacks
+└─────────┴───────────┘
+          │
+    ┌─────┴─────┐
+    ▼           ▼
+ BrainX      Lightweight
+ inject      recall
+ (full)      (grep+jq)
 ```
 
 ## Configuración
