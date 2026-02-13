@@ -1,0 +1,47 @@
+{
+  "id": "memory-inyection",
+  "name": "Memory Inyection",
+  "version": "2.0.0",
+  "description": "Auto-detect and index critical information from incoming messages to BrainX V2 storage",
+  "kind": "memory",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true
+      },
+      "storage": {
+        "type": "string",
+        "default": "brainx-v2",
+        "description": "Storage backend: brainx-v2 or legacy"
+      },
+      "patterns": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": { "type": "boolean", "default": true },
+          "githubUrl": { "type": "boolean", "default": true },
+          "commitSha": { "type": "boolean", "default": true },
+          "errorStack": { "type": "boolean", "default": true },
+          "filePaths": { "type": "boolean", "default": true },
+          "urls": { "type": "boolean", "default": true },
+          "finance": { "type": "boolean", "default": true },
+          "dates": { "type": "boolean", "default": true },
+          "secrets": { "type": "boolean", "default": true }
+        }
+      }
+    }
+  },
+  "uiHints": {
+    "enabled": { 
+      "label": "Enable auto-indexing", 
+      "description": "Detect and save critical patterns from incoming messages to BrainX V2" 
+    },
+    "storage": {
+      "label": "Storage Backend",
+      "description": "Use BrainX V2 unified storage for RAG search and optimization"
+    }
+  }
+}
